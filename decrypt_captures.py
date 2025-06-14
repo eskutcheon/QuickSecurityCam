@@ -4,7 +4,9 @@ from dotenv import load_dotenv
 import os
 import binascii
 
-ENV_PATH = "./tokens.env"
+from .config import ENV_PATH
+
+
 try:
     # load environment variables from tokens.env file and sets necessary openCV environment variables (OPENCV_LOG_LEVEL and OPENCV_VIDEOIO_DEBUG)
     load_dotenv(dotenv_path=ENV_PATH)

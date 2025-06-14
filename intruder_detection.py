@@ -1,27 +1,19 @@
 import cv2
-import dropbox
+# import dropbox
+import cloudinary
+import cloudinary.uploader
 import time
 import datetime
 import os
 from dotenv import load_dotenv
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import padding
+#from cryptography.hazmat.primitives import padding
 import binascii
 
+from config import *
 
-# config parameters
-USB_CAM_INDEX = 0  # USB camera index (0 is usually default camera)
-FRAME_WIDTH = 640
-FRAME_HEIGHT = 480
-# NOTE: above dimensions mean that the area below is roughly 1/300 of total area
-MIN_AREA = 1000  # minimum area size for motion detection
-# duration of each video clip in seconds - needs to be low enough to catch the degens
-VIDEO_CLIP_DURATION = 5
 
-DROPBOX_FOLDER = '/webcam_captures/'
-LOCAL_CAPTURE_FOLDER = "motion_captures/"
-ENV_PATH = "./tokens.env"
 try:
     # load environment variables from tokens.env file and sets necessary openCV environment variables (OPENCV_LOG_LEVEL=debug and OPENCV_VIDEOIO_DEBUG=1)
     load_dotenv(dotenv_path=ENV_PATH)
@@ -29,14 +21,34 @@ except FileNotFoundError:
     raise Exception(f"File '{ENV_PATH}' not found. Assuming that environment variables were set manually.")
 # get API token and encryption key from environment variables
 
-DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_API_KEY")
+CLOUD_ACCESS_TOKEN = os.getenv("DROPBOX_API_KEY")
 # using 32-byte key for AES encryption
 encryption_key_hex = os.getenv("ENCRYPTION_KEY")# .encode() # ensure key is in bytes
+if not encryption_key_hex:
+    raise Exception("ENCRYPTION_KEY not set in environment variables.")
 encryption_key = binascii.unhexlify(encryption_key_hex)
+
+
+# Cloudinary configuration
+cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+api_key = os.getenv("CLOUDINARY_API_KEY")
+api_secret = os.getenv("CLOUDINARY_API_SECRET")
+secure = True
+if not cloud_name or not api_key or not api_secret:
+    raise Exception("Cloudinary credentials not set in environment variables.")
+
+cloudinary.config(
+    cloud_name=cloud_name,
+    api_key=api_key,
+    api_secret=api_secret,
+    secure=secure
+)
+
 
 
 
 def encrypt_file(file_path):
+    """ Encrypt a file using AES-GCM and return the path to the encrypted file (.enc). """
     # read local file data as binary file
     with open(file_path, 'rb') as f:
         file_data = f.read()
@@ -50,13 +62,26 @@ def encrypt_file(file_path):
         f.write(iv + encrypted_data + encryptor.tag)
     return encrypted_file_path
 
-def upload_to_dropbox(file_path, dropbox_path):
-    dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
-    with open(file_path, 'rb') as f:
-        dbx.files_upload(f.read(), dropbox_path)
+# def upload_to_dropbox(file_path, dropbox_path):
+#     dbx = dropbox.Dropbox(CLOUD_ACCESS_TOKEN)
+#     with open(file_path, 'rb') as f:
+#         dbx.files_upload(f.read(), dropbox_path)
+
+def upload_to_cloudinary(file_path, public_id):
+    """ Uploads a file to Cloudinary as a raw resource and returns the secure URL. """
+    result = cloudinary.uploader.upload(
+        file_path,
+        resource_type="raw",
+        public_id=public_id
+    )
+    return result.get("secure_url")
+
+
+
 
 
 def video_feed_capture(capture, fgbg):
+    # TODO: change this to be multi-threaded to monitor on one thread and encrypt/upload on another
     while True:
         ret, frame = capture.read()
         if not ret:
@@ -85,9 +110,12 @@ def video_feed_capture(capture, fgbg):
                 out.write(frame)
             out.release()
             encrypted_file_path = encrypt_file(video_filepath)
-            dropbox_path = DROPBOX_FOLDER + os.path.basename(encrypted_file_path)
-            upload_to_dropbox(encrypted_file_path, dropbox_path)
-            print(f"Uploaded {encrypted_file_path} to Dropbox at {dropbox_path}")
+            # dropbox_path = UPLOAD_FOLDER + os.path.basename(encrypted_file_path)
+            # upload_to_dropbox(encrypted_file_path, dropbox_path)
+            # print(f"Uploaded {encrypted_file_path} to Dropbox at {dropbox_path}")
+            public_id = f"{UPLOAD_FOLDER}/{os.path.basename(encrypted_file_path)}"
+            url = upload_to_cloudinary(encrypted_file_path, public_id)
+            print(f"Uploaded to Cloudinary: {url}")
         time.sleep(1)  # 1 second delay to reduce CPU usage (hoping to run this with a powershell script in low power mode later)
 
 
