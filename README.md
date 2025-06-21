@@ -19,6 +19,7 @@ The original incarnation of this was written as a quick script to act as a secur
 - Cross-platform capture: auto-selects appropriate OpenCV backend on Windows, macOS, Linux
 
 > [!WARNING] Dropbox Update
+>
 > Dropbox backend hasn't been fully tested in the refactored version. Avoid relying on it in general without adding session-refresh logic since API keys are short-lived
 
 
@@ -45,10 +46,11 @@ CLOUDINARY_API_KEY=<your_cloudinary_key>
 CLOUDINARY_API_SECRET=<your_cloudinary_secret>
 ```
 
-#### NOTES
-- only one of `DROPBOX_API_KEY` or `CLOUDINARY_API_KEY` must be specified accordingly with the `CLOUD_SERVICE` name in `config.py` (default: "cloudinary")
-- `ENCRYPTION_KEY` is currently a 256-bit encryption key for AES-GCM encryption, but more will be supported in the future
-- Future supported cloud backends will follow the same <BACKEND>_API_KEY and <BACKEND>_API_SECRET naming patterns
+> [!NOTE] Caveats for Environment Variables
+>
+> - only one of `DROPBOX_API_KEY` or `CLOUDINARY_API_KEY` must be specified accordingly with the `CLOUD_SERVICE` name in `config.py` (default: "cloudinary")
+> - `ENCRYPTION_KEY` is currently a 256-bit encryption key for AES-GCM encryption, but more will be supported in the future
+> - Future supported cloud backends will follow the same <BACKEND>_API_KEY and <BACKEND>_API_SECRET naming patterns
 
 
 4. Tweak configuration
@@ -96,7 +98,7 @@ You should see logs in `motion_captures/run.log`, and encrypted clips/backups in
 
 ## Future Extensions
 
-#### Higher Priority
+### Higher Priority
 
 - **Native Hot-path Replacement**
   - Replace the Python capture/detector with a C++ or Rust OpenCV module that publishes events over a socket; keep the Python consumer/upload logic.
@@ -119,7 +121,7 @@ You should see logs in `motion_captures/run.log`, and encrypted clips/backups in
   - Integrate optional, lightweight ML-based detectors (YOLOv5-tiny) for people vs. object classification to reduce false positives
 
 
-#### Lower Priority
+### Lower Priority
 
 - **Additional Encryption Protocols**
   - Implement more encryption protocol options (e.g. AES, RSA, ECC) abstracted to a common interface.
