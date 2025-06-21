@@ -1,7 +1,7 @@
 import dropbox
 import os
 from dotenv import load_dotenv
-from .config import UPLOAD_FOLDER
+from ..config import UPLOAD_FOLDER
 
 
 ENV_PATH = "./tokens.env"

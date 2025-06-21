@@ -163,5 +163,5 @@ cython_debug/
 
 
 # MY FILES/DIRECTORIES:
-tokens.env
+*.env
 motion_captures/
